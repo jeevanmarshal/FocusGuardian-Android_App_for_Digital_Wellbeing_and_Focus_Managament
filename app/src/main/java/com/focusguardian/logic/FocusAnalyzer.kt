@@ -18,14 +18,10 @@ object FocusAnalyzer {
     }
 
     fun saveDailyAnalytics(context: Context) {
-        val distracted = usageMap.values.sum()
-        val focused = 24 * 60 - distracted
-
-        AnalyticsStore.saveTodayUsage(
-            context = context,
-            focused = focused.coerceAtLeast(0),
-            distracted = distracted
-        )
+        val distractedMinutes = usageMap.values.sum()
+        
+        // Convert to seconds since the new API expects seconds
+        AnalyticsStore.addDistractedTime(context, distractedMinutes * 60)
     }
 
     fun reset() {

@@ -6,12 +6,16 @@ build/
 # Android Studio / IntelliJ
 .idea/
 *.iml
+*.ipr
+*.iws
 
 # Local configuration
 local.properties
 
-# Logs
+# Logs and specific build outputs
 *.log
+build_log*.txt
+notepad .gitignore
 
 # OS
 .DS_Store

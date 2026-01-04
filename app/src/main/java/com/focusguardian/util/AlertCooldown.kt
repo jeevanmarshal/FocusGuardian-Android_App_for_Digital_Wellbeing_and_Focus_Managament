@@ -1,15 +1,20 @@
 package com.focusguardian.util
 
 object AlertCooldown {
-    private var lastAlertTime = 0L
+    private val lastAlertMap = mutableMapOf<String, Long>()
     private const val COOLDOWN_MS = 60_000 // 1 minute
 
-    fun canTrigger(): Boolean {
+    fun canTrigger(pkg: String): Boolean {
         val now = System.currentTimeMillis()
-        if (now - lastAlertTime > COOLDOWN_MS) {
-            lastAlertTime = now
+        val lastTime = lastAlertMap[pkg] ?: 0L
+        if (now - lastTime > COOLDOWN_MS) {
+            lastAlertMap[pkg] = now
             return true
         }
         return false
+    }
+
+    fun reset(pkg: String) {
+        lastAlertMap.remove(pkg)
     }
 }

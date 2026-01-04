@@ -4,5 +4,6 @@ enum class AlertStage {
     NONE,
     GENTLE,
     REMINDER,
-    STRICT
+    STRICT,
+    BLOCKED
 }

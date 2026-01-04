@@ -7,8 +7,12 @@ import android.os.*
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import androidx.core.app.NotificationCompat
-// import com.focusguardian.logic.AlertModeHandler
+import com.focusguardian.logic.AlertModeHandler
+import com.focusguardian.logic.CognitiveFeatureExtractor
 import com.focusguardian.util.UserPrefs
+import com.focusguardian.data.UsageDatabaseHelper
+import com.focusguardian.logic.AlertDispatcher
+import com.focusguardian.logic.AlertStage
 
 /**
  * Foreground service that continuously monitors
@@ -18,6 +22,7 @@ class AppUsageService : Service() {
 
     private lateinit var usageStatsManager: UsageStatsManager
     private val handler = Handler(Looper.getMainLooper())
+    private lateinit var dbHelper: UsageDatabaseHelper
 
     private var currentApp: String? = null
 
@@ -32,6 +37,12 @@ class AppUsageService : Service() {
         super.onCreate()
         usageStatsManager =
             getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        
+        dbHelper = UsageDatabaseHelper(this)
+
+        
+        AlertModeHandler.resetAll()
+        VoiceAlertService.init(this)
 
         startForegroundServiceInternal()
         handler.post(pollRunnable)
@@ -39,7 +50,7 @@ class AppUsageService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(pollRunnable)
-        currentApp?.let { AlertModeHandler.onAppExit(it) }
+        currentApp?.let { AlertModeHandler.onAppExit(this, it) }
         super.onDestroy()
     }
 
@@ -53,6 +64,12 @@ class AppUsageService : Service() {
 
         if (!UserPrefs.isAppMonitoringEnabled(this)) return
         if (UserPrefs.isEmergencyPauseActive(this)) return
+
+        // 0. CHECK FOCUS MODE
+        if (UserPrefs.isFocusModeActive(this)) {
+             // We can't know the app yet, let's query event first.
+        }
+
 
         val endTime = System.currentTimeMillis()
         val startTime = endTime - 5000
@@ -70,15 +87,41 @@ class AppUsageService : Service() {
             }
         }
 
+        // Exclude Focus Guardian itself
+        if (latestApp == packageName) {
+            if (currentApp != null && currentApp != packageName) {
+                AlertModeHandler.onAppExit(this, currentApp!!)
+            }
+            currentApp = null
+            return
+        }
+
         // App changed
         if (latestApp != null && latestApp != currentApp) {
-            currentApp?.let { AlertModeHandler.onAppExit(it) }
+            currentApp?.let { AlertModeHandler.onAppExit(this, it) }
             currentApp = latestApp
+            UserPrefs.incrementSwitchCount(this)
+            UserPrefs.incrementAppUsageCount(this, latestApp)
+            UserPrefs.setLastUsedTimestamp(this, latestApp)
+            CognitiveFeatureExtractor.recordAppSwitch(latestApp)
+            dbHelper.incrementLaunch(latestApp)
         }
+
 
         // App still in foreground
         currentApp?.let {
+            
+            // Check Focus Mode / Bedtime Blocking
+            val isFocus = UserPrefs.isFocusModeActive(this)
+            val isBedtime = com.focusguardian.logic.BedtimeManager.isBedtimeActive(this)
+
+            if ((isFocus || isBedtime) && UserPrefs.isAppInFocusMode(this, it)) {
+                AlertDispatcher.dispatch(this, AlertStage.BLOCKED, it)
+                return // Do not track time
+            }
+
             AlertModeHandler.onAppInForeground(this, it)
+            dbHelper.addUsage(it, 2000L)
         }
     }
 
@@ -106,6 +149,14 @@ class AppUsageService : Service() {
             .setOngoing(true)
             .build()
 
-        startForeground(1, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                1, 
+                notification, 
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            startForeground(1, notification)
+        }
     }
 }
