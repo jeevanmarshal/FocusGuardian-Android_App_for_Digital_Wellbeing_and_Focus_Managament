@@ -8,6 +8,9 @@ build/
 *.iml
 *.ipr
 *.iws
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
 
 # Local configuration
 local.properties
@@ -20,3 +23,21 @@ notepad .gitignore
 # OS
 .DS_Store
 Thumbs.db
+
+# Android Studio generated files and folders
+captures/
+.externalNativeBuild/
+.cxx/
+*.aab
+*.apk
+output-metadata.json
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services
+google-services.json
+
+# Android Profiling
+*.hprof
