@@ -22,7 +22,8 @@ FocusGuardian was developed to demonstrate comprehensive full-stack and mobile d
 
 ### 📱 Android Application (`android-app`)
 Built with modern standardizations of Android development leveraging the following libraries:
-- **Core UI & Logic:** `Kotlin`, `Jetpack Compose` (Material 3)
+- **Languages:** `Kotlin`, `XML`
+- **Core UI & Logic:** `Jetpack Compose` (Material 3)
 - **Asynchrony:** `Kotlin Coroutines` & `Flows`
 - **Networking:** `Retrofit2`, `Gson`
 - **Data Persistence:** `Room Database` (SQLite), `DataStore`
@@ -32,6 +33,7 @@ Built with modern standardizations of Android development leveraging the followi
 
 ### ☁️ AI Backend Server (`ai-backend`)
 A scalable microservice architecture leveraging standard REST protocol patterns:
+- **Languages:** `JavaScript` (Node.js)
 - **Runtime & Gateway:** `Node.js`, `Express.js`
 - **AI Processing:** Google `@google/generative-ai` (Gemini API)
 - **Security & Utilities:** `helmet` (HTTP securing), `joi` (validation), `cors`
