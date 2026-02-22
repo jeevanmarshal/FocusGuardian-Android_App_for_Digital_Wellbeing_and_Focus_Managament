@@ -1,160 +1,204 @@
 package com.focusguardian.service
 
-import android.app.*
-import android.content.Context
-import android.content.Intent
-import android.os.*
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.os.Handler
+import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
-import com.focusguardian.logic.AlertModeHandler
-import com.focusguardian.logic.CognitiveFeatureExtractor
-import com.focusguardian.util.UserPrefs
-import com.focusguardian.data.UsageDatabaseHelper
-import com.focusguardian.logic.AlertDispatcher
-import com.focusguardian.logic.AlertStage
+import com.focusguardian.ServiceLocator
+import com.focusguardian.domain.logic.RuleManager
+import kotlinx.coroutines.*
 
-/**
- * Foreground service that continuously monitors
- * the currently active foreground application.
- */
 class AppUsageService : Service() {
 
     private lateinit var usageStatsManager: UsageStatsManager
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val sessionUsageMap = mutableMapOf<String, Long>()
     private val handler = Handler(Looper.getMainLooper())
-    private lateinit var dbHelper: UsageDatabaseHelper
-
-    private var currentApp: String? = null
 
     private val pollRunnable = object : Runnable {
         override fun run() {
-            detectForegroundApp()
-            handler.postDelayed(this, 2000) // poll every 2 seconds
+            monitorUsage()
+            handler.postDelayed(this, 1000)
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        usageStatsManager =
-            getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        ServiceLocator.initialize(this)
         
-        dbHelper = UsageDatabaseHelper(this)
-
+        usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         
-        AlertModeHandler.resetAll()
-        VoiceAlertService.init(this)
-
         startForegroundServiceInternal()
         handler.post(pollRunnable)
     }
 
     override fun onDestroy() {
         handler.removeCallbacks(pollRunnable)
-        currentApp?.let { AlertModeHandler.onAppExit(this, it) }
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    /* ==========================================================
-       🔍 FOREGROUND APP DETECTION
-       ========================================================== */
-
-    private fun detectForegroundApp() {
-
-        if (!UserPrefs.isAppMonitoringEnabled(this)) return
-        if (UserPrefs.isEmergencyPauseActive(this)) return
-
-        // 0. CHECK FOCUS MODE
-        if (UserPrefs.isFocusModeActive(this)) {
-             // We can't know the app yet, let's query event first.
-        }
-
-
-        val endTime = System.currentTimeMillis()
-        val startTime = endTime - 5000
-
-        val events: UsageEvents =
-            usageStatsManager.queryEvents(startTime, endTime)
-
-        var event = UsageEvents.Event()
-        var latestApp: String? = null
-
-        while (events.hasNextEvent()) {
-            events.getNextEvent(event)
-            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
-                latestApp = event.packageName
-            }
-        }
-
-        // Exclude Focus Guardian itself
-        if (latestApp == packageName) {
-            if (currentApp != null && currentApp != packageName) {
-                AlertModeHandler.onAppExit(this, currentApp!!)
-            }
-            currentApp = null
-            return
-        }
-
-        // App changed
-        if (latestApp != null && latestApp != currentApp) {
-            currentApp?.let { AlertModeHandler.onAppExit(this, it) }
-            currentApp = latestApp
-            UserPrefs.incrementSwitchCount(this)
-            UserPrefs.incrementAppUsageCount(this, latestApp)
-            UserPrefs.setLastUsedTimestamp(this, latestApp)
-            CognitiveFeatureExtractor.recordAppSwitch(latestApp)
-            dbHelper.incrementLaunch(latestApp)
-        }
-
-
-        // App still in foreground
-        currentApp?.let {
+    private fun monitorUsage() {
+        try {
+            // 1. Detect Foreground App
+            val endTime = System.currentTimeMillis()
+            val startTime = endTime - 2000
+            val events = usageStatsManager.queryEvents(startTime, endTime)
+            var currentApp: String? = null
+            val event = UsageEvents.Event()
             
-            // Check Focus Mode / Bedtime Blocking
-            val isFocus = UserPrefs.isFocusModeActive(this)
-            val isBedtime = com.focusguardian.logic.BedtimeManager.isBedtimeActive(this)
-
-            if ((isFocus || isBedtime) && UserPrefs.isAppInFocusMode(this, it)) {
-                AlertDispatcher.dispatch(this, AlertStage.BLOCKED, it)
-                return // Do not track time
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                    currentApp = event.packageName
+                }
             }
+            
+            // If we can't detect via stats, maybe fallback to last known or ignore.
+            // But we need to check ContextManager for Shorts even if stats says YouTube.
+            // If currentApp is null, we might still be in same app. 
+            // Better to rely on what stats/accessibility thinks.
+            // For this impl, assume if currentApp is null, we pause monitoring or rely on stored "last foreground".
+            if (currentApp == null) return
 
-            AlertModeHandler.onAppInForeground(this, it)
-            dbHelper.addUsage(it, 2000L)
+            // 2. Persistent Usage Tracking for APP
+            scope.launch(Dispatchers.IO) {
+                val dataRepository = ServiceLocator.dataRepository
+                val usageDao = dataRepository.getUsageDao()
+                val today = getMidnightTimestamp()
+                
+                // Track Generic App Usage
+                var usage = usageDao.getAppUsage(currentApp!!, today)
+                if (usage == null) {
+                    usage = com.focusguardian.data.local.entity.AppUsageEntity(
+                        packageName = currentApp!!,
+                        date = today,
+                        usageDurationMillis = 0,
+                        openCount = 1
+                    )
+                }
+                
+                val updatedUsage = usage.copy(
+                     usageDurationMillis = usage.usageDurationMillis + 1000,
+                     openCount = usage.openCount // Open count logic: ideally handled on MOVE_TO_FOREGROUND only
+                )
+                usageDao.insertOrUpdateAppUsage(updatedUsage)
+                
+                // 3. Shorts/Reels Logic
+                var isShortsActive = false
+                var isReelsActive = false
+                
+                if (currentApp == "com.google.android.youtube") {
+                    if (com.focusguardian.domain.logic.CurrentContextManager.isShortsVisible()) {
+                        isShortsActive = true
+                        trackSpecialUsage(usageDao, "youtube_shorts", today)
+                    }
+                } else if (currentApp == "com.instagram.android") {
+                     if (com.focusguardian.domain.logic.CurrentContextManager.isReelsVisible()) {
+                        isReelsActive = true
+                        trackSpecialUsage(usageDao, "insta_reels", today)
+                    }
+                }
+
+                // 4. Evaluate Rules (Switch back to main for UI)
+                val totalSeconds = updatedUsage.usageDurationMillis / 1000
+                withContext(Dispatchers.Main) {
+                    val ruleManager = ServiceLocator.ruleManager
+                    val overlayController = ServiceLocator.overlayController
+                    val enforcementExecutor = ServiceLocator.enforcementExecutor
+                    
+                    // Evaluate App Rule
+                    var decision = ruleManager.evaluate(currentApp!!, RuleManager.TargetType.APP, totalSeconds)
+                    
+                    // Override decision if Shorts/Reels active
+                    if (isShortsActive) {
+                        val shortsUsage = withContext(Dispatchers.IO) { usageDao.getAppUsage("youtube_shorts", today)?.usageDurationMillis ?: 0L }
+                        decision = ruleManager.evaluate("Shorts", RuleManager.TargetType.SHORTS, shortsUsage / 1000)
+                    } else if (isReelsActive) {
+                        val reelsUsage = withContext(Dispatchers.IO) { usageDao.getAppUsage("insta_reels", today)?.usageDurationMillis ?: 0L }
+                        decision = ruleManager.evaluate("Reels", RuleManager.TargetType.REELS, reelsUsage / 1000)
+                    }
+                    
+                    when (decision) {
+                        RuleManager.Decision.ALLOW -> {
+                            overlayController.hideOverlay()
+                        }
+                        RuleManager.Decision.GENTLE_ALERT -> {
+                            overlayController.showGentleAlert(if(isShortsActive) "Shorts" else if(isReelsActive) "Reels" else currentApp!!, "Gentle Reminder: Time is passing!")
+                        }
+                        RuleManager.Decision.REMINDER_ALERT -> {
+                            overlayController.showReminderAlert(if(isShortsActive) "Shorts" else if(isReelsActive) "Reels" else currentApp!!, "Review your focus goals.")
+                        }
+                        RuleManager.Decision.STRICT_BLOCK -> {
+                            overlayController.showStrictAlert(if(isShortsActive) "Shorts" else if(isReelsActive) "Reels" else currentApp!!, "Time limit reached.", 20)
+                            enforcementExecutor.executeGoHome()
+                        }
+                        RuleManager.Decision.BLOCK_FEED -> {
+                            // Specifically for Shorts/Reels feed blocking
+                            // We can try Back action via Accessibility Service if possible, or just Go Home
+                            enforcementExecutor.executeGoHome()
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
+    
+    private suspend fun trackSpecialUsage(usageDao: com.focusguardian.data.local.dao.UsageDao, pkg: String, date: Long) {
+         var usage = usageDao.getAppUsage(pkg, date)
+         if (usage == null) {
+            usage = com.focusguardian.data.local.entity.AppUsageEntity(
+                 packageName = pkg,
+                 date = date,
+                 usageDurationMillis = 0,
+                 openCount = 1
+            )
+         }
+         val updated = usage.copy(usageDurationMillis = usage.usageDurationMillis + 1000)
+         usageDao.insertOrUpdateAppUsage(updated)
+    }
 
-    /* ==========================================================
-       🔔 FOREGROUND SERVICE NOTIFICATION
-       ========================================================== */
-
+    private fun getMidnightTimestamp(): Long {
+        val calendar = java.util.Calendar.getInstance()
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        calendar.set(java.util.Calendar.MINUTE, 0)
+        calendar.set(java.util.Calendar.SECOND, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+        return calendar.timeInMillis
+    }
+    
     private fun startForegroundServiceInternal() {
-        val channelId = "focus_guardian_channel"
-
+        val channelId = "focus_guardian_mon_channel"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "Focus Guardian Monitoring",
+                "Focus Guardian Active",
                 NotificationManager.IMPORTANCE_LOW
             )
             getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(channel)
         }
-
+        
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Focus Guardian Active")
-            .setContentText("Monitoring app usage to improve focus")
+            .setContentText("Monitoring usage...")
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setOngoing(true)
             .build()
-
+            
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                1, 
-                notification, 
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            )
+            startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
             startForeground(1, notification)
         }

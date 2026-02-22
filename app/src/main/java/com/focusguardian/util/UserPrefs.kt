@@ -2,6 +2,7 @@ package com.focusguardian.util
 
 import android.content.Context
 import android.content.SharedPreferences
+import java.util.Calendar
 
 object UserPrefs {
 
@@ -9,6 +10,8 @@ object UserPrefs {
 
     // ---------- GLOBAL KEYS ----------
     private const val KEY_APP_MONITORING = "app_monitoring"
+    private const val KEY_WEBSITE_MONITORING = "website_monitoring"
+    private const val KEY_SHORTS_MONITORING = "shorts_monitoring"
     private const val KEY_VOICE_ALERTS = "voice_alerts"
     private const val KEY_STRICT_GLOBAL = "strict_global"
     private const val KEY_EMERGENCY_PAUSE_UNTIL = "emergency_pause_until"
@@ -33,6 +36,30 @@ object UserPrefs {
 
     fun setAppMonitoringEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_APP_MONITORING, enabled).apply()
+    }
+
+    fun isWebsiteMonitoringEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_WEBSITE_MONITORING, true)
+
+    fun setWebsiteMonitoringEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_WEBSITE_MONITORING, enabled).apply()
+    }
+
+    fun isShortsMonitoringEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_SHORTS_MONITORING, true)
+
+    fun setShortsMonitoringEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_SHORTS_MONITORING, enabled).apply()
+    }
+
+    private const val KEY_TAMPERING_DETECTED = "tampering_detected"
+
+    fun setTamperingDetected(context: Context, detected: Boolean) {
+        prefs(context).edit().putBoolean(KEY_TAMPERING_DETECTED, detected).apply()
+    }
+
+    fun isTamperingDetected(context: Context): Boolean {
+        return prefs(context).getBoolean(KEY_TAMPERING_DETECTED, false)
     }
 
     fun isVoiceAlertsEnabled(context: Context): Boolean =
@@ -404,4 +431,78 @@ object UserPrefs {
 
     fun getBedtimeEndHour(context: Context): Int = prefs(context).getInt(KEY_BEDTIME_END_H, 7)
     fun getBedtimeEndMinute(context: Context): Int = prefs(context).getInt(KEY_BEDTIME_END_M, 0)
+
+    fun isBedtimeNow(context: Context): Boolean {
+        if (!isBedtimeEnabled(context)) return false
+        val now = Calendar.getInstance()
+        val currentH = now.get(Calendar.HOUR_OF_DAY)
+        val currentM = now.get(Calendar.MINUTE)
+
+        val startH = getBedtimeStartHour(context)
+        val startM = getBedtimeStartMinute(context)
+        val endH = getBedtimeEndHour(context)
+        val endM = getBedtimeEndMinute(context)
+
+        val currentTime = currentH * 60 + currentM
+        val startTime = startH * 60 + startM
+        val endTime = endH * 60 + endM
+
+        return if (startTime <= endTime) {
+            currentTime in startTime..endTime
+        } else {
+            // Over midnight
+            currentTime >= startTime || currentTime <= endTime
+        }
+    }
+
+    /* ---------- MONITORED SITES ---------- */
+    private const val KEY_MONITORED_SITES = "monitored_sites_set" // Set<String> of domains
+
+    fun getMonitoredSites(context: Context): Set<String> {
+        return prefs(context).getStringSet(KEY_MONITORED_SITES, emptySet()) ?: emptySet()
+    }
+
+    fun addMonitoredSite(context: Context, domain: String) {
+        val current = getMonitoredSites(context).toMutableSet()
+        current.add(domain)
+        prefs(context).edit().putStringSet(KEY_MONITORED_SITES, current).apply()
+        // Enable by default
+        setSiteEnabled(context, domain, true)
+    }
+
+    fun removeMonitoredSite(context: Context, domain: String) {
+        val current = getMonitoredSites(context).toMutableSet()
+        current.remove(domain)
+        prefs(context).edit().putStringSet(KEY_MONITORED_SITES, current).apply()
+    }
+
+    fun setSiteEnabled(context: Context, domain: String, enabled: Boolean) {
+        prefs(context).edit().putBoolean("site_enabled_$domain", enabled).apply()
+    }
+
+    fun isSiteEnabled(context: Context, domain: String): Boolean {
+        return prefs(context).getBoolean("site_enabled_$domain", true)
+    }
+
+    /* ---------- SHORTS / REELS PER APP ---------- */
+    
+    fun setShortsMonitoringForApp(context: Context, pkg: String, enabled: Boolean) {
+        prefs(context).edit().putBoolean(key(pkg, "shorts_mon_enabled"), enabled).apply()
+    }
+
+    fun isShortsMonitoringForApp(context: Context, pkg: String): Boolean {
+        // Default to true if global shorts monitoring is on, or just true
+        return prefs(context).getBoolean(key(pkg, "shorts_mon_enabled"), true)
+    }
+
+    /* ---------- APP MODE TYPE PERSISTENCE ---------- */
+    private const val KEY_CURRENT_MODE_TYPE = "current_mode_type"
+
+    fun setCurrentModeType(context: Context, mode: String) {
+        prefs(context).edit().putString(KEY_CURRENT_MODE_TYPE, mode).apply()
+    }
+
+    fun getCurrentModeType(context: Context): String {
+        return prefs(context).getString(KEY_CURRENT_MODE_TYPE, "FOCUS") ?: "FOCUS"
+    }
 }

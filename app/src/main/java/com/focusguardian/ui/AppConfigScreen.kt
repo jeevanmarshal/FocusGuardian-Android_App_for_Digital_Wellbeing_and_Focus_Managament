@@ -20,7 +20,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Android
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.material3.*
+import androidx.compose.material3.Divider // Add Divider import
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,6 +90,14 @@ fun AppConfigContent(
     val context = LocalContext.current
     val primaryPkg = pkgs.first() // For default values
     
+    // Determine App Type
+    val appType = when {
+        primaryPkg.startsWith("site:") -> "SITE"
+        primaryPkg == "youtube_shorts" -> "SHORTS"
+        primaryPkg == "insta_reels" -> "REELS"
+        else -> "APP"
+    }
+
     // Helper to format seconds to H:M:S string
     fun formatTime(seconds: Long): String {
         val h = seconds / 3600
@@ -92,14 +106,24 @@ fun AppConfigContent(
         return String.format("%02d:%02d:%02d", h, m, s)
     }
 
+    // Default Messages
+    val defaultGentle = "Time to Focus!"
+    val defaultReminder = "Get back to your task"
+    val defaultStrict = when(appType) {
+        "SITE" -> "You must stop using this Site now"
+        "SHORTS" -> "You must stop watching Shorts now"
+        "REELS" -> "You must stop watching Reels now"
+        else -> "You must stop using this app now"
+    }
+
     // State (Load from primaryPkg initially)
-    var gentleSeconds by remember { mutableStateOf(UserPrefs.getGentleSeconds(context, primaryPkg)) }
-    var reminderSeconds by remember { mutableStateOf(UserPrefs.getReminderSeconds(context, primaryPkg)) }
-    var strictSeconds by remember { mutableStateOf(UserPrefs.getStrictSeconds(context, primaryPkg)) }
+    var gentleSeconds by remember { mutableStateOf(UserPrefs.getGentleSeconds(context, primaryPkg).takeIf { it > 0 } ?: 10L) }
+    var reminderSeconds by remember { mutableStateOf(UserPrefs.getReminderSeconds(context, primaryPkg).takeIf { it > 0 } ?: 10L) }
+    var strictSeconds by remember { mutableStateOf(UserPrefs.getStrictSeconds(context, primaryPkg).takeIf { it > 0 } ?: 10L) }
     
-    var gentleMsg by remember { mutableStateOf(UserPrefs.getGentleMessage(context, primaryPkg)) }
-    var reminderMsg by remember { mutableStateOf(UserPrefs.getReminderMessage(context, primaryPkg)) }
-    var strictMsg by remember { mutableStateOf(UserPrefs.getStrictMessage(context, primaryPkg)) }
+    var gentleMsg by remember { mutableStateOf(UserPrefs.getGentleMessage(context, primaryPkg).ifEmpty { defaultGentle }) }
+    var reminderMsg by remember { mutableStateOf(UserPrefs.getReminderMessage(context, primaryPkg).ifEmpty { defaultReminder }) }
+    var strictMsg by remember { mutableStateOf(UserPrefs.getStrictMessage(context, primaryPkg).ifEmpty { defaultStrict }) }
     var pendingTask by remember { mutableStateOf(UserPrefs.getPendingTask(context, primaryPkg)) }
     
     var isGentleEnabled by remember { mutableStateOf(UserPrefs.isGentleEnabled(context, primaryPkg)) }
@@ -110,10 +134,10 @@ fun AppConfigContent(
     var appIntent by remember { mutableStateOf(UserPrefs.getAppIntent(context, primaryPkg)) }
     var isAIAdaptive by remember { mutableStateOf(UserPrefs.isAIAdaptiveEnabled(context, primaryPkg)) }
     var sensitivity by remember { mutableStateOf(UserPrefs.getCognitiveSensitivity(context, primaryPkg).toFloat()) }
-    var pauseDuration by remember { mutableStateOf(UserPrefs.getPauseDurationMinutes(context, primaryPkg)) }
+    var pauseDuration by remember { mutableStateOf(UserPrefs.getPauseDurationMinutes(context, primaryPkg).takeIf { it > 0 } ?: 10) } // Default 10 mins
 
     // Time Picker States
-    var showTimePickerFor by remember { mutableStateOf<String?>(null) } // "GENTLE", "REMINDER", "STRICT"
+    var showTimePickerFor by remember { mutableStateOf<String?>(null) } // "GENTLE", "REMINDER", "STRICT", "PAUSE_DURATION"
 
     Scaffold(
         topBar = {
@@ -125,40 +149,91 @@ fun AppConfigContent(
                     ) 
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                        }
+                        
+                        // Resolve Logo
+                        val context = LocalContext.current
+                        var iconBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+                        var defaultIconVector by remember { mutableStateOf<androidx.compose.ui.graphics.vector.ImageVector?>(null) }
+                        
+                        LaunchedEffect(pkgs) {
+                            val pkg = pkgs.firstOrNull() ?: ""
+                            if (pkg.startsWith("site:")) {
+                                defaultIconVector = Icons.Default.Public // Web
+                            } else if (pkg.startsWith("shorts:")) {
+                                defaultIconVector = Icons.Default.PlayCircle // Video
+                            } else {
+                                try {
+                                    val drawable = context.packageManager.getApplicationIcon(pkg)
+                                    val bitmap = if (drawable is android.graphics.drawable.BitmapDrawable) {
+                                        drawable.bitmap
+                                    } else {
+                                        val bmp = android.graphics.Bitmap.createBitmap(
+                                            drawable.intrinsicWidth.coerceAtLeast(1),
+                                            drawable.intrinsicHeight.coerceAtLeast(1),
+                                            android.graphics.Bitmap.Config.ARGB_8888
+                                        )
+                                        val canvas = android.graphics.Canvas(bmp)
+                                        drawable.setBounds(0, 0, canvas.width, canvas.height)
+                                        drawable.draw(canvas)
+                                        bmp
+                                    }
+                                    iconBitmap = bitmap.asImageBitmap()
+                                } catch (e: Exception) {
+                                    defaultIconVector = Icons.Default.Android // Fallback
+                                }
+                            }
+                        }
+
+                        if (iconBitmap != null) {
+                            androidx.compose.foundation.Image(
+                                bitmap = iconBitmap!!,
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp).padding(start = 8.dp)
+                            )
+                        } else if (defaultIconVector != null) {
+                            Icon(
+                                imageVector = defaultIconVector!!,
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp).padding(start = 8.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.primary
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    // Save to ALL packages
-                    pkgs.forEach { p ->
-                        UserPrefs.setGentleSeconds(context, p, gentleSeconds)
-                        UserPrefs.setReminderSeconds(context, p, reminderSeconds)
-                        UserPrefs.setStrictSeconds(context, p, strictSeconds)
-
-                        UserPrefs.setGentleMessage(context, p, gentleMsg)
-                        UserPrefs.setReminderMessage(context, p, reminderMsg)
-                        UserPrefs.setStrictMessage(context, p, strictMsg)
-                        UserPrefs.setPendingTask(context, p, pendingTask)
-
-                        UserPrefs.setGentleEnabled(context, p, isGentleEnabled)
-                        UserPrefs.setReminderEnabled(context, p, isReminderEnabled)
-                        UserPrefs.setStrictEnabled(context, p, isStrictEnabled)
-                        UserPrefs.setEmergencyUnlockAllowed(context, p, isEmergencyAllowed)
-                        
-                        UserPrefs.setAppIntent(context, p, appIntent)
-                        UserPrefs.setAIAdaptiveEnabled(context, p, isAIAdaptive)
-                        UserPrefs.setCognitiveSensitivity(context, p, sensitivity.toInt())
-                        UserPrefs.setPauseDurationMinutes(context, p, pauseDuration)
-                    }
+                    // Save to ALL packages via RuleStore
+                    com.focusguardian.data.RuleStore.saveAppRules(
+                        context = context,
+                        pkgs = pkgs,
+                        gentleSeconds = gentleSeconds,
+                        reminderSeconds = reminderSeconds,
+                        strictSeconds = strictSeconds,
+                        gentleMsg = gentleMsg,
+                        reminderMsg = reminderMsg,
+                        strictMsg = strictMsg,
+                        pendingTask = pendingTask,
+                        isGentleEnabled = isGentleEnabled,
+                        isReminderEnabled = isReminderEnabled,
+                        isStrictEnabled = isStrictEnabled,
+                        isEmergencyAllowed = isEmergencyAllowed,
+                        pauseDurationMinutes = pauseDuration,
+                        appIntent = appIntent,
+                        isAIAdaptive = isAIAdaptive,
+                        sensitivity = sensitivity.toInt()
+                    )
 
                     Toast.makeText(context, "Settings saved for ${pkgs.size} apps", Toast.LENGTH_SHORT).show()
                     onBack()
@@ -181,45 +256,118 @@ fun AppConfigContent(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(28.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Text(
-                        "Time Thresholds",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    TimeInputItem(
-                        label = "Gentle Alert", 
-                        timeStr = formatTime(gentleSeconds),
-                        onClick = { showTimePickerFor = "GENTLE" }
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    TimeInputItem(
-                        label = "Reminder Alert", 
-                        timeStr = formatTime(reminderSeconds),
-                        onClick = { showTimePickerFor = "REMINDER" }
-                    )
+            
+            // Logic for Shorts/Reels Special Handling
+            val isSpecialEnforcement = primaryPkg == "youtube_shorts" || primaryPkg == "insta_reels"
+            var enforcementMode by remember { mutableStateOf("ALERT") } // ALERT or BLOCKING
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    TimeInputItem(
-                        label = "Strict Block", 
-                        timeStr = formatTime(strictSeconds),
-                        onClick = { showTimePickerFor = "STRICT" }
-                    )
+            if (isSpecialEnforcement) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "Enforcement Mode",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(
+                                selected = enforcementMode == "ALERT",
+                                onClick = { enforcementMode = "ALERT" }
+                            )
+                            Text("Alert Enforcement", modifier = Modifier.clickable { enforcementMode = "ALERT" })
+                        }
+                        Text(
+                            "General 3-Stage Alert System (Gentle-Reminder-Strict)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(start = 48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(
+                                selected = enforcementMode == "BLOCKING",
+                                onClick = { enforcementMode = "BLOCKING" }
+                            )
+                            Text("Blocking Enforcement", modifier = Modifier.clickable { enforcementMode = "BLOCKING" })
+                        }
+                        Text(
+                            "Feed is blocked immediately or for defined time.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(start = 48.dp)
+                        )
+                    }
                 }
             }
 
+            // Only show Gentle/Reminder/Strict sections if Alert Mode OR (Strict Section only for Blocking Mode)
+            
+            if (enforcementMode == "ALERT") {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(28.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(24.dp)) {
+                        Text(
+                            "Time Thresholds",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        TimeInputItem(
+                             label = "Gentle Alert", 
+                             timeStr = formatTime(gentleSeconds),
+                             onClick = { showTimePickerFor = "GENTLE" }
+                        )
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        TimeInputItem(
+                            label = "Reminder Alert", 
+                            timeStr = formatTime(reminderSeconds),
+                            onClick = { showTimePickerFor = "REMINDER" }
+                        )
+    
+                        Spacer(modifier = Modifier.height(12.dp))
+    
+                        TimeInputItem(
+                            label = "Strict Block", 
+                            timeStr = formatTime(strictSeconds),
+                            onClick = { showTimePickerFor = "STRICT" }
+                        )
+                    }
+                }
+            } else {
+                 // BLOCKING MODE - Minimal Config (Just Block Duration effectively)
+                 // But wait, Blocking Enforcement usually implies "Instant" or "Strict Limit"
+                 // Doc says: "Strict Blocking Alert... Block Duration".
+                 // We'll show the Strict Threshold and Block Duration.
+                 // Actually, if it's "Blocking Enforcement", it usually means "No usage allowed" or "Strict limit".
+                 // Let's allow setting the Strict Limit (Time allowed before block) even in Blocking Mode?
+                 // Doc says: "Blocking Enforcement... click... directs to configure module".
+                 // Let's assume user might want 5 mins of Reels then Block.
+            }
+
+
             Spacer(modifier = Modifier.height(24.dp))
+
+            if (enforcementMode == "BLOCKING") {
+                 // In Blocking Mode, auto-set Strict
+                 LaunchedEffect(Unit) {
+                     isGentleEnabled = false
+                     isReminderEnabled = false
+                     isStrictEnabled = true
+                 }
+            }
 
             Surface(
                 color = MaterialTheme.colorScheme.surface,
@@ -235,26 +383,29 @@ fun AppConfigContent(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    OutlinedTextField(
-                        value = gentleMsg,
-                        onValueChange = { gentleMsg = it },
-                        label = { Text("Gentle Alert Message") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = reminderMsg,
-                        onValueChange = { reminderMsg = it },
-                        label = { Text("Reminder Alert Message") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    if (enforcementMode == "ALERT") {
+                        OutlinedTextField(
+                            value = gentleMsg,
+                            onValueChange = { gentleMsg = it },
+                            label = { Text("Gentle Alert Message") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = reminderMsg,
+                            onValueChange = { reminderMsg = it },
+                            label = { Text("Reminder Alert Message") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                    
                     OutlinedTextField(
                         value = strictMsg,
                         onValueChange = { strictMsg = it },
-                        label = { Text("Strict Alert Message") },
+                        label = { Text(if (enforcementMode == "ALERT") "Strict Alert Message" else "Blocking Message") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp)
                     )
@@ -270,9 +421,8 @@ fun AppConfigContent(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            // ... (Rest of existing UI logic maintained mostly for Intent/Enforcement)
             
-             Surface(
+            Surface(
                 color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(28.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -286,28 +436,42 @@ fun AppConfigContent(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    SettingsSwitchItem(
-                        title = "Gentle Alert",
-                        subtitle = "First soft warning",
-                        checked = isGentleEnabled,
-                        onCheckedChange = { isGentleEnabled = it }
-                    )
+                    if (enforcementMode == "ALERT") {
+                        SettingsSwitchItem(
+                            title = "Gentle Alert",
+                            subtitle = "First soft warning",
+                            checked = isGentleEnabled,
+                            onCheckedChange = { isGentleEnabled = it }
+                        )
 
-                    SettingsSwitchItem(
-                        title = "Reminder Alert",
-                        subtitle = "Secondary nudge",
-                        checked = isReminderEnabled,
-                        onCheckedChange = { isReminderEnabled = it }
-                    )
+                        SettingsSwitchItem(
+                            title = "Reminder Alert",
+                            subtitle = "Secondary nudge",
+                            checked = isReminderEnabled,
+                            onCheckedChange = { isReminderEnabled = it }
+                        )
 
-                    SettingsSwitchItem(
-                        title = "Strict Enforcement",
-                        subtitle = "Force exit app & block",
-                        checked = isStrictEnabled,
-                        onCheckedChange = { isStrictEnabled = it }
-                    )
+                        SettingsSwitchItem(
+                            title = "Strict Enforcement",
+                            subtitle = "Force exit app & block",
+                            checked = isStrictEnabled,
+                            onCheckedChange = { isStrictEnabled = it }
+                        )
+                    } else {
+                        // Blocking Mode: Strict is Forced ON
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Strict Enforcement", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                                Text("Always Active in Blocking Mode", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            }
+                            Switch(checked = true, onCheckedChange = {}, enabled = false)
+                        }
+                    }
 
-                    if (isStrictEnabled) {
+                    if (isStrictEnabled || enforcementMode == "BLOCKING") {
                         TimeInputItem(
                             label = "Block Duration", 
                             timeStr = formatTime(pauseDuration * 60L),
@@ -326,7 +490,7 @@ fun AppConfigContent(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Divider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(24.dp))
             
             // Manual Override Section
@@ -356,10 +520,7 @@ fun AppConfigContent(
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = {
-                            pkgs.forEach { p ->
-                                // Reset pause duration (unblock)
-                                UserPrefs.setAppPausedUntil(context, p, 0)
-                            }
+                            com.focusguardian.data.RuleStore.resetAppBlock(context, pkgs)
                             Toast.makeText(context, "App Unblocked. You can now access it.", Toast.LENGTH_LONG).show()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),

@@ -18,34 +18,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         setContent {
-            val themeMode = com.focusguardian.util.UserPrefs.getThemeMode(this)
-            val isDark = when (themeMode) {
-                1 -> false
-                2 -> true
-                else -> androidx.compose.foundation.isSystemInDarkTheme()
-            }
-
-            androidx.compose.material3.MaterialTheme(
-                colorScheme = if (isDark) androidx.compose.material3.darkColorScheme(
-                    primary = androidx.compose.ui.graphics.Color(0xFF6C63FF),
-                    secondary = androidx.compose.ui.graphics.Color(0xFF03DAC5),
-                    background = androidx.compose.ui.graphics.Color(0xFF121212),
-                    surface = androidx.compose.ui.graphics.Color(0xFF1E1E1E),
-                    onPrimary = androidx.compose.ui.graphics.Color.White,
-                    onSurface = androidx.compose.ui.graphics.Color.White
-                ) else androidx.compose.material3.lightColorScheme(
-                    primary = androidx.compose.ui.graphics.Color(0xFF6200EE),
-                    secondary = androidx.compose.ui.graphics.Color(0xFF03DAC5),
-                    background = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
-                    surface = androidx.compose.ui.graphics.Color(0xFFF5F5F5),
-                    onPrimary = androidx.compose.ui.graphics.Color.White,
-                    onSurface = androidx.compose.ui.graphics.Color.Black
-                )
+            com.focusguardian.ui.theme.FocusGuardianTheme(
+                dynamicColor = false // Enforce our branded colors
             ) {
-                 // Directly call proceedToApp when splash finishes. 
-                 // No state switch to avoid blank screen.
-                 SplashScreen {
-                     proceedToApp()
+                 var showSplash by remember { mutableStateOf(true) }
+                 
+                 if (showSplash) {
+                     SplashScreen {
+                         proceedToApp()
+                         showSplash = false
+                     }
+                 } else {
+                     com.focusguardian.ui.MainContainer()
                  }
             }
         }
@@ -77,10 +61,8 @@ class MainActivity : ComponentActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
-        // Step 4: Launch dashboard
-        startActivity(Intent(this, DashboardScreen::class.java))
-        finish()
+        
+        // Navigation is handled by State in setContent (switching to MainScreen)
     }
 
     private fun requestNecessaryPermissions() {

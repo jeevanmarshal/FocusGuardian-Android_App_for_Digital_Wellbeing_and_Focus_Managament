@@ -1,0 +1,466 @@
+Give Prompt for Anti-Gravity Agent 
+
+Analyse the all the below context and give me as a separate module-wise prompt for implement the ideas. and lastly give an overview checking prompt for the whole implementation and suggested features are added and performed.
+
+
+The below are the full core features and details of this Focus Guardian App, by analysing the all files and structure of current app, just remove or change the app features and components is unwanted.
+follow the mentioned features and components to implement into it and add better UI & UX for best app design and connect all logics with UI and Integrate with the system OS level implementations.
+just get it every implementation is strong and must get output with logics. Add this info don't build the app unless I suggest and your work is to first implement the features based on the module-wise prompts.
+
+key suggestions,
+* In app name don't include the app package name instead of just App name with good grammar and first letter of the Name in capital like e.g. Whatsapp, Youtube etc.,
+* Same for site name, include site name not URL in Alerts.
+* Keep the spinner timing module same as the current project, don’t change it.
+
+
+
+In dashboard,
+
+1. Set a navigation menu bar on top left corner and when it clicked it shows the below options,
+   + Dashboard
+   + Monitoring  
+   + Analytics
+   + Modes 
+   + Settings
+   + Send Feedback
+   + About
+
+2. Focus Score at same place and removes Lasered focus Text and add a component named - Current Mode: (it was setted inside the mode menu as focus, study, work, sleep, custom mode)
+
+3. AI- Insights below the Focus score 
+
+4. Monitoring Menu haves below components
+   + App Monitoring with Toggle button(on/off)
+   + Website Monitoring with Toggle button(on/off)
+   + Shorts/Reels Monitoring with Toggle button(on/off)
+
+5. Analytics contains
+   + most used apps with timing
+   + most launched apps with launch counts
+   + Total screen Time
+
+below the dashboard 
++ A navigation container to switch between menus :| Dashboard | Analytics | Modes | Settings |
+ 
+
+Monitoring,
+
+In App monitoring 
+
+1. Displays Apps installed in the system
+   + Apps displayed with its name and icon in a rectangular container and inside the container the alerts setted are to be mentioned like [Gentle-Reminder-Strict] and after a toggle button to [on] the app monitoring
+   + toggle button in right to on/off it.
+2. At the above, list the search container for searching the app 
+   + Next to right add sort by options as - Alphabetical, most used, Custom, Categorized.
+    + The custom sorting options shows when selected as custom by ascending, descending, most used, less used, 
+    + The Categorized option contains when select it shows the apps by the category like examples,
+               1st social apps
+               2nd media apps
+               3rd payment apps
+               4th system apps
+               5th Entertainment apps
+               these categorizations are defaultely based on the system OS or playstore classification and it can be later changed by the user to switch them into different category.
+
+3. While long press a App shows select multiple apps using tick box as tick and then proceed button to implement this setting for all selected apps
+
+4. While long press a App it shows Select all/none option as tick box at top to select all or not select all apps and it also have the sort by option for selection.
+ 
+
+In Website monitoring 
+
+1. add input box to insert site domain URL.
+
+2. search the URL and then get the site name and then sets its name and its logo (if possible).
+   + sites displayed with its name and icon in a rectangular container and inside the container the alerts setted are to be mentioned like [Gentle-Reminder-Strict] and after a toggle button to [on] the site monitoring
+   + toggle button in right to on/off it.
+3. once the site added successfully shows the next input fields.
+
+4. At the above, list the search container for searching the site by Name 
+   + Next to right add sort by options as - Alphabetical, Most used, Custom.
+    + The custom sorting options shows when selected as custom by ascending, descending, most used, less used, 
+    
+5. While long press a Site shows select multiple Sites using tick box as tick and then proceed button to implement this setting for all selected Sites
+
+6. While long press a site it shows Select all/none option as tick box at top to select all or not select all sites and it also have the sort by option for selection.
+   
+
+In Shorts/Reels Monitoring 
+
+1. Youtube Shorts 
+   + Add Youtube Shorts with logo and toggle button in right to on/off it.
+   + display in rectangular container and inside the container a toggle button to [on/Off] the shorts monitoring
+   + while clicking the Youtube Shorts: it gets to Enforcement Module
+   + this Enforcement Module contains,
+     + Alert Enforcement (neither or) Blocking Enforcement as Radio button type as container button either choose Alert Enforcement(button) or Blocking Enforcement(button)
+        
+       + Alert Enforcement button (with small texted info below as: General 3-Stage Alert System for Shorts (Gentle-Reminder-Strict)
+         + While clicking the Alert Enforcement button it directs to configure module 
+       + Blocking Enforcement button (with small texted info below as: Shorts are blocked for Defined time.
+         + While clicking the Blocking Enforcement button it directs to configure module 
+
+2. Instagram Reels
+   + Add Instagram Reels with logo and toggle button in right to on/off it.
+   + display in rectangular container and inside the container a toggle button to [on/Off] the Reels monitoring
+   + while clicking the Instagram Reels: it gets to Enforcement Module
+   + this Enforcement Module contains,
+     + Alert Enforcement (neither or) Blocking Enforcement as Radio button type as container button either choose Alert Enforcement(button) or Blocking Enforcement(button)
+        
+       + Alert Enforcement button (with small texted info below as: General 3-Stage Alert System for Reels (Gentle-Reminder-Strict)
+         + While clicking the Alert Enforcement button it directs to configure module 
+       + Blocking Enforcement button (with small texted info below as: Reels are blocked for Defined time.
+         + While clicking the Blocking Enforcement button it directs to configure module 
+
+
+Alert System,
+
+Alert System for App Monitoring - configure module
+
+1. At top-left corner: <- (back option using Left arrow) App logo with name 
+
+2. Time Thresholds
+   + Gentle Alert with Spinner to set defaulted timing as (00:00:10)
+   + Reminder Alert with Spinner to set defaulted timing as (00:00:10)
+   + Strict Blocking Alert with Spinner to set defaulted timing as (00:00:10)
+
+3. Custom Alert Messages 
+   + Gentle Alert Message, input box with default message (Time to Focus!) and it is changeable by user 
+   + Reminder Alert Message, input box with default message (Get back to your task) and it is changeable by user 
+   + Strict Blocking Alert Message, input box with default message (You must stop using this app now) and it is changeable by user 
+   + Pending Task, input box which is user definable
+
+4. Enforcement
+   + Gentle Alert (mention below with small text "First Soft Warning") On/Off toggle button.
+   + Reminder Alert (mention below with small text "Secondary Reminder Warning ") On/Off toggle button.
+   + Strict Blocking Alert (mention below with small text "Force Exit App & Block") On/Off toggle button.
+    + below strict Enforcement - Block Duration with Spinner to set defaulted timing as (00:00:10)
+
+5. Manual override 
+   + with lock symbol + Manual Override
+   + message (If this app is currently blocked and you need urgent access. you manually unblock it here. this will reset the current strict block timer 
+   + Unlock App Now (button) 
+
+below Right corner - Save All button placed with Tick symbol at first ([tick symbol] Save All)
+
+Alert System for Site Monitoring - configure module
+
+1. At top-left corner: <- (back option using Left arrow) Site logo with name 
+
+2. Time Thresholds
+   + Gentle Alert with Spinner to set defaulted timing as (00:00:10)
+   + Reminder Alert with Spinner to set defaulted timing as (00:00:10)
+   + Strict Blocking Alert with Spinner to set defaulted timing as (00:00:10)
+
+3. Custom Alert Messages 
+   + Gentle Alert Message, input box with default message (Time to Focus!) and it is changeable by user 
+   + Reminder Alert Message, input box with default message (Get back to your task) and it is changeable by user 
+   + Strict Blocking Alert Message, input box with default message (You must stop using this Site now) and it is changeable by user 
+   + Pending Task, input box which is user definable
+
+4. Enforcement
+   + Gentle Alert (mention below with small text "First Soft Warning") On/Off toggle button.
+   + Reminder Alert (mention below with small text "Secondary Reminder Warning ") On/Off toggle button.
+   + Strict Blocking Alert (mention below with small text "Force Exit App & Block") On/Off toggle button.
+    + below strict Enforcement - Block Duration with Spinner to set defaulted timing as (00:00:10)
+
+5. Manual override 
+   + with lock symbol + Manual Override
+   + message (If this site is currently blocked and you need urgent access. you manually unblock it here. this will reset the current strict block timer 
+   + Unlock Site Now (button) 
+
+below Right corner - Save All button placed with Tick symbol at first ([tick symbol] Save All)
+
+
+
+Alert System for Youtube Shorts through Enforcement Module
+  
+Alert Enforcement - configure module,
+
+1. At top-left corner: <- (back option using Left arrow) Youtube With logo
+
+2. Time Thresholds
+   + Gentle Alert with Spinner to set defaulted timing as (00:00:10)
+   + Reminder Alert with Spinner to set defaulted timing as (00:00:10)
+   + Strict Blocking Alert with Spinner to set defaulted timing as (00:00:10)
+
+3. Custom Alert Messages 
+   + Gentle Alert Message, input box with default message (Time to Focus!) and it is changeable by user 
+   + Reminder Alert Message, input box with default message (Get back to your task) and it is changeable by user 
+   + Strict Blocking Alert Message, input box with default message (You must stop watching Shorts now) and it is changeable by user 
+   + Pending Task, input box which is user definable
+
+4. Enforcement
+   + Gentle Alert (mention below with small text "First Soft Warning") On/Off toggle button.
+   + Reminder Alert (mention below with small text "Secondary Reminder Warning ") On/Off toggle button.
+   + Strict Blocking Alert (mention below with small text "Force Exit of Shorts Feed & Block") On/Off toggle button.
+    + below strict Enforcement - Block Duration with Spinner to set defaulted timing as (00:00:10)
+
+5. Manual override 
+   + with lock symbol + Manual Override
+   + message (If this Shorts Feed is currently blocked and you need urgent access. you manually unblock it here. this will reset the current strict block timer 
+   + Unlock Shorts Feed Now (button) 
+
+below Right corner - Save All button placed with Tick symbol at first ([tick symbol] Save All)
+
+Blocking Enforcement is a logic performed when activated while it is clicked through radio button designed
+  + This Enforcement is a logic to simply blocks the shorts as if user opened shorts in the youtube app it just gets out of the shorts feed, not totally from the youtube. 
+
+Alert System for Instagram Reels through Enforcement Module
+
+1. At top-left corner: <- (back option using Left arrow) Instagram with logo
+
+2. Time Thresholds
+   + Gentle Alert with Spinner to set defaulted timing as (00:00:10)
+   + Reminder Alert with Spinner to set defaulted timing as (00:00:10)
+   + Strict Blocking Alert with Spinner to set defaulted timing as (00:00:10)
+
+3. Custom Alert Messages 
+   + Gentle Alert Message, input box with default message (Time to Focus!) and it is changeable by user 
+   + Reminder Alert Message, input box with default message (Get back to your task) and it is changeable by user 
+   + Strict Blocking Alert Message, input box with default message (You must stop watching Reels now) and it is changeable by user 
+   + Pending Task, input box which is user definable
+
+4. Enforcement
+   + Gentle Alert (mention below with small text "First Soft Warning") On/Off toggle button.
+   + Reminder Alert (mention below with small text "Secondary Reminder Warning ") On/Off toggle button.
+   + Strict Blocking Alert (mention below with small text "Force Exit of Shorts Feed & Block") On/Off toggle button.
+    + below strict Enforcement - Block Duration with Spinner to set defaulted timing as (00:00:10)
+
+5. Manual override 
+   + with lock symbol + Manual Override
+   + message (If this Reels Feed is currently blocked and you need urgent access. you manually unblock it here. this will reset the current strict block timer 
+   + Unlock Reels Feed Now (button) 
+
+below Right corner - Save All button placed with Tick symbol at first ([tick symbol] Save All)
+
+Blocking Enforcement is a logic performed when activated while it is clicked through radio button designed
+  + This Enforcement is a logic to simply blocks the Reels as if user opened Reels in the Instagram app it just gets out of the Reels feed, not totally from the Instagram. 
+
+
+Analytics,
+
+1. At Top: Today Date with Day mentioned in a container like [ 11-01-2026 | Sunday [C]] 
+   + [C] is the Calendar icon while clicking, it shows the whole calendar with changeable date by selecting which date to view the analytics
+   + This calendar includes changeable months using left and right arrow symbols 
+   + It follows general calendar layout like Sunday to Saturday with 7 rows with table format
+
+2. changeable Modules for Analytics: | Usage Time | App Launches | Usage Timeline |
+
+   + Usage Time contains, 
+     + Total Usage Time with a graphical representation
+     + Below that Usage Stats contain Switchable viewing of (All | Apps | Sites | Shorts & Reels) by one by one select one type to view its stats
+     + this usage stats shows with logo and its (App Name/Site Name/Youtube Shorts/Instagram Reels) and usage timing follows as (00 hr 00 mins 00 sec (if it's in hour), (00 mins 00 sec (if it's in Minutes), (00 sec (if it's in Seconds))   
+     + while clicking, it shows specific usage stats in graphical representation format  
+
+   + App Launches contains, 
+     + Total Launch Count with a graphical representation
+     + Below that Launch Stats contain Switchable viewing of (All | Apps | Sites | Shorts & Reels) by one by one select one type to view its stats
+     + this Launch stats shows with logo and its (App Name/Site Name/Youtube Shorts/Instagram Reels) and Launch Counts follows as (x Launches)
+     + while clicking, it shows specific Launch stats in graphical representation format               
+ 
+   + Usage Timeline,
+     + shows the continues usage of (Apps, Sites, Youtube, Shorts, Instagram Reels) with its time stamp and opened at used for x timing (00 hr 00 mins 00 sec (if it's in hour)), (00 mins 00 sec (if it's in Minutes)), (00 sec (if it's in Seconds)    
+     + its timeline is recent to past - format as top to bottom timelining with date-month-Year (11-01-2026) as chain linking the timing 
+     + it sows with the logo and App Name/Site Name/Youtube Shorts/Instagram Reels 
+
+
+Modes,
+
+1. Focus Mode
+
+2. Work Mode
+
+3. Study Mode
+
+4. Sleep Mode
+ 
+5. Custom Mode 
+
+
+Settings, 
+it includes,
+
+1. General 
+   + Voice Alerts - below contain (small texted info: Speak when limits are reached) and toggle button to on/off 
+    + below Voice Type - Male | Female 
+   
+2. Emergency Access 
+   + small texted info: Tap to immediately Unblock all Alerts and blockings if you are stuck. 
+   + button: Manual Override / Unblock All
+
+3. Appearance 
+   + Theme (System default / Dark Mode / Light Mode) 
+
+4. System Permissions 
+   + Usage Access
+   + Notification
+   + Battery Optimization
+   + App Overlay Access 
+
+mention below the version info 1.0.0 
+
+
+
+
+
+Overlay Alert message modules,
+
+for App Alerts,
+ 
+1. Gentle Alert,
+   + Small overlay window with App logo and name 
+   + Mention Gentle Alert 
+   + Alert Message: "You have reached the time limit of (App name).
+                                      +
+                              User defined Gentle Alert message
+   + set a button on the left side as [Ok] to just close the Alert window.
+   + set a button on the right side as [Exit] to get out of the App by Exiting. 
+
+2. Reminder Alert,
+   + Small overlay window with App logo and name 
+   + Mention Reminder Alert 
+   + Alert Message: "You have reached the time limit of (App name).
+                                      +
+                              User defined Reminder Alert message
+   + set a button on the left side as [Ok] to just close the Alert window.
+   + set a button on the right side as [Exit] to get out of the App by Exiting. 
+
+3. Strict Blocking Alert,
+   + Small overlay window with App logo and name 
+   + Mention Strict Blocking with block icon
+   + Alert Message: "              Time's Up!
+                   You have reached the time limit of (App name).
+                                      +
+                          User defined Reminder Alert message"
+   + this Alert is triggered with a 5-beep counted sound with timer count down from 10 - 0 to exit the App
+   + set a button in below the window [Close App] to get out of the App by Exiting. 
+   + after this App exiting, the Strict Enforcement is Implemented as for user defined X timing and this logic connected from configure module
+   
+
+4. Strict Enforcement Alert Window,
+   + this also a overlay window, which is triggered after Strict Enforcement is Implemented after strict blocking alert,
+   + after exit from the App through Strict blocking, when user try to open the app this alert shows,
+      + "App Access Blocked" (with symbol)
+      + Message - Proceed to Pending task:(user defined pending task)
+   + set a button on the right side as [Exit] to get out of the app by Exiting. 
+   + set a button on the left side as [Unlock] to redirect to Unlock block access/Manual override from configure module
+
+
+for Site Alerts,
+ 
+1. Gentle Alert,
+   + Small overlay window with Site logo and name 
+   + Mention Gentle Alert 
+   + Alert Message: "You have reached the time limit of (Site name).
+                                      +
+                          User defined Gentle Alert message
+   + set a button on the left side as [Ok] to just close the Alert window.
+   + set a button on the right side as [Exit] to get out of the Site by Exiting. 
+
+2. Reminder Alert,
+   + Small overlay window with Site logo and name 
+   + Mention Reminder Alert 
+   + Alert Message: "You have reached the time limit of (Site name).
+                                      +
+                          User defined Reminder Alert message
+   + set a button on the left side as [Ok] to just close the Alert window.
+   + set a button on the right side as [Exit] to get out of the Site by Exiting. 
+
+3. Strict Blocking Alert,
+   + Small overlay window with Site logo and name 
+   + Mention Strict Blocking with block icon
+   + Alert Message: "              Time's Up!
+                   You have reached the time limit of (Site name).
+                                      +
+                          User defined Reminder Alert message"
+   + this Alert is triggered with a 5-beep counted sound with timer count down from 10 - 0 to exit the Site
+   + set a button in below the window [Close Site] to get out of the Site by Exiting. 
+   + after this Site exiting, the Strict Enforcement is Implemented as for user defined X timing and this logic connected from configure module
+   
+
+4. Strict Enforcement Alert Window,
+   + this also an overlay window, which is triggered after Strict Enforcement is Implemented after strict blocking alert,
+   + after exit from the Site through Strict blocking, when user try to open the Site this alert shows,
+      + "Site Access Blocked" (with symbol)
+      + Message - Proceed to Pending task:(user defined pending task)
+   + set a button on the right side as [Exit] to get out of the Site by Exiting. 
+   + set a button on the left side as [Unlock] to redirect to Unlock block access/Manual override from configure module
+
+
+for Youtube Shorts Alerts,
+ 
+1. Gentle Alert,
+   + Small overlay window with Youtube Shorts & logo
+   + Mention Gentle Alert 
+   + Alert Message: "You have reached the time limit of (Youtube Shorts).
+                                      +
+                          User defined Gentle Alert message
+   + set a button on the left side as [Ok] to just close the Alert window.
+   + set a button on the right side as [Exit] to get out of the Youtube Shorts by Exiting to youtube window not out of Youtube. 
+
+2. Reminder Alert,
+   + Small overlay window with Youtube Shorts & logo 
+   + Mention Reminder Alert 
+   + Alert Message: "You have reached the time limit of (Youtube Shorts).
+                                      +
+                          User defined Reminder Alert message
+   + set a button on the left side as [Ok] to just close the Alert window.
+   + set a button on the right side as [Exit] to get out of the Youtube Shorts by Exiting to youtube window not out of Youtube. 
+
+3. Strict Blocking Alert,
+   + Small overlay window with Youtube Shorts & logo
+   + Mention Strict Blocking with block icon
+   + Alert Message: "              Time's Up!
+                   You have reached the time limit of (Youtube Shorts).
+                                      +
+                          User defined Reminder Alert message"
+   + this Alert is triggered with a 5-beep counted sound with timer count down from 10 - 0 to exit the Youtube Shorts to youtube window not out of Youtube. 
+   + set a button in below the window [Close Site] to get out of the Youtube Shorts by Exiting. 
+   + after this Youtube Shorts exiting, the Strict Enforcement is Implemented as for user defined X timing and this logic connected from configure module.
+
+4. This Stict blocking is a logic to simply blocks the shorts as if user opened shorts in the youtube app it just gets out of the shorts feed, not totally from the youtube. 
+   + after the Strcit enforcement time completed the Shorts can be opened and allowed the user to view and open the shorts feed.
+
+ 
+for Instagram Reels Alerts,
+ 
+1. Gentle Alert,
+   + Small overlay window with Instagram Reels & logo
+   + Mention Gentle Alert 
+   + Alert Message: "You have reached the time limit of (Instagram Reels).
+                                      +
+                          User defined Gentle Alert message
+   + set a button on the left side as [Ok] to just close the Alert window.
+   + set a button on the right side as [Exit] to get out of the Instagram Reels by Exiting to Instagram window not out of Instagram. 
+
+2. Reminder Alert,
+   + Small overlay window with Instagram Reels & logo 
+   + Mention Reminder Alert 
+   + Alert Message: "You have reached the time limit of (Instagram Reels).
+                                      +
+                          User defined Reminder Alert message
+   + set a button on the left side as [Ok] to just close the Alert window.
+   + set a button on the right side as [Exit] to get out of the Instagram Reels by Exiting to Instagram window not out of Instagram.
+3. Strict Blocking Alert,
+   + Small overlay window with Instagram Reels & logo
+   + Mention Strict Blocking with block icon
+   + Alert Message: "              Time's Up!
+                   You have reached the time limit of (Instagram Reels).
+                                      +
+                          User defined Reminder Alert message"
+   + this Alert is triggered with a 5-beep counted sound with timer count down from 10 - 0 to exit the Instagram Reels to Instagram window not out of Instagram. 
+   + set a button in below the window [Close Site] to get out of the Instagram Reels by Exiting. 
+   + after this Instagram Reels exiting, the Strict Enforcement is Implemented as for user defined X timing and this logic connected from configure module.
+
+4. This Strict blocking is a logic to simply blocks the Instagram Reels as if user opened Instagram Reels in the Instagram app it just gets out of the Reels feed, not totally from the Instagram. 
+   + after the Strict enforcement time completed the Instagram Reels can be opened and allowed the user to view and open the Reels feed.
+
+
+Reminder Popup Notification,
+Add a small popup notification for notifying the user that, 
+how much time he/she was in the current app for continuously for every X minute (user definable timed notification)
+e.g. (Instagram used for 20 minutes) as small [popup overlay notification] at the top of the window as centre. 
+
+ 
+
+
+

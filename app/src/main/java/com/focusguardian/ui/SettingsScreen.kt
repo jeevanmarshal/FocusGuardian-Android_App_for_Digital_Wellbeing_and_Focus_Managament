@@ -1,12 +1,15 @@
 package com.focusguardian.ui
 
+
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import com.focusguardian.ServiceLocator
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,6 +19,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
+import androidx.compose.material3.Divider // Add Divider import
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,29 +39,16 @@ class SettingsScreen : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val themeMode = UserPrefs.getThemeMode(this)
+            // Note: FocusGuardianTheme handles theming internally based on system/user pref if we wired it up, 
+            // but here we manually pass `darkTheme` based on UserPrefs.
+            // FocusGuardianTheme expects `darkTheme: Boolean`.
             val isDark = when (themeMode) {
                 1 -> false
                 2 -> true
                 else -> androidx.compose.foundation.isSystemInDarkTheme()
             }
 
-            MaterialTheme(
-                colorScheme = if (isDark) darkColorScheme(
-                    primary = Color(0xFF6C63FF),
-                    secondary = Color(0xFF03DAC5),
-                    background = Color(0xFF121212),
-                    surface = Color(0xFF1E1E1E),
-                    onPrimary = Color.White,
-                    onSurface = Color.White
-                ) else lightColorScheme(
-                    primary = Color(0xFF6200EE),
-                    secondary = Color(0xFF03DAC5),
-                    background = Color(0xFFF5F5F5),
-                    surface = Color.White,
-                    onPrimary = Color.White,
-                    onSurface = Color.Black
-                )
-            ) {
+            com.focusguardian.ui.theme.FocusGuardianTheme(darkTheme = isDark) {
                 SettingsContent(onBack = { finish() })
             }
         }
@@ -68,6 +59,10 @@ class SettingsScreen : ComponentActivity() {
 @Composable
 fun SettingsContent(onBack: () -> Unit) {
     val context = LocalContext.current
+    
+    // ServiceLocator Access
+    // Using new Managers directly via userPrefs or simple logic since complex controllers were removed
+    // Ideally we'd use a ViewModel but for this cleanup phase we stick to inline logic
     
     var voiceEnabled by remember { mutableStateOf(UserPrefs.isVoiceAlertsEnabled(context)) }
     var voiceType by remember { mutableStateOf(UserPrefs.getAlertVoiceType(context)) }
@@ -167,7 +162,57 @@ fun SettingsContent(onBack: () -> Unit) {
                 }
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+            // Emergency Override Section
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                ),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "Emergency Access",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Tap to immediately unblock all apps and disable strict mode if you are stuck.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            // Emergency Logic
+                            UserPrefs.setGlobalStrictEnabled(context, false)
+                            strictGlobal = false
+                            
+                            // Hide overlays
+                            try {
+                                ServiceLocator.overlayController.hideOverlay()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                            
+                            // Reset all blocks (Placeholder call, ideally iterate pkgs or clear flag)
+                            // Since we can't iterate all, disabling strict/overlay is the main step.
+                            
+                            Toast.makeText(context, "Emergency Unlock Activated", Toast.LENGTH_LONG).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Manual Override / Unblock All")
+                    }
+                }
+            }
+
+            Divider(modifier = Modifier.padding(vertical = 16.dp))
             
 
 
@@ -188,7 +233,7 @@ fun SettingsContent(onBack: () -> Unit) {
                 }
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+            Divider(modifier = Modifier.padding(vertical = 16.dp))
             
             // Advanced / Debug
             SettingsSectionTitle("System")
@@ -291,149 +336,6 @@ fun SimpleTimePicker(
     }
 }
 
-@Composable
-fun SettingsTimeWheel(
-    label: String,
-    value: Int,
-    range: IntRange,
-    onValueChange: (Int) -> Unit
-) {
-    // Convert range to list for LazyColumn
-    val items = (range).toList()
-    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-    
-    // Initial scroll
-    LaunchedEffect(value) {
-        val index = items.indexOf(value)
-        if (index >= 0) {
-            // Center the item: visible items is usually 3-5. 
-            // We want index to be in middle.
-            // Simplified: snap to index
-             listState.scrollToItem(index)
-        }
-    }
-    
-    // Snapping Logic
-    val isScrollInProgress = listState.isScrollInProgress
-    LaunchedEffect(isScrollInProgress) {
-        if (!isScrollInProgress) {
-            // Find visible item closest to center
-            val layoutInfo = listState.layoutInfo
-            val centerOffset = layoutInfo.viewportEndOffset / 2
-            var closestIndex = -1
-            var minDistance = Int.MAX_VALUE
-            
-            layoutInfo.visibleItemsInfo.forEach { item ->
-                val itemCenter = item.offset + item.size / 2
-                val distance = kotlin.math.abs(centerOffset - itemCenter)
-                if (distance < minDistance) {
-                    minDistance = distance
-                    closestIndex = item.index
-                }
-            }
-            
-            if (closestIndex != -1 && closestIndex in items.indices) {
-                val newValue = items[closestIndex]
-                if (newValue != value) {
-                    onValueChange(newValue)
-                }
-                listState.animateScrollToItem(closestIndex)
-            }
-        }
-    }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        androidx.compose.material3.Text(
-            text = label, 
-            style = MaterialTheme.typography.labelMedium, 
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Box(
-            modifier = Modifier.height(120.dp).width(80.dp),
-            contentAlignment = Alignment.Center
-        ) {
-             androidx.compose.foundation.lazy.LazyColumn(
-                 state = listState,
-                 contentPadding = PaddingValues(vertical = 40.dp), // Height / 3 approx
-                 horizontalAlignment = Alignment.CenterHorizontally,
-                 modifier = Modifier.fillMaxSize()
-             ) {
-                 items(items.size) { index ->
-                     val itemValue = items[index]
-                     val isSelected = itemValue == value
-                     
-                     androidx.compose.material3.Text(
-                         text = "%02d".format(itemValue),
-                         style = if (isSelected) 
-                             MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold) 
-                         else 
-                             MaterialTheme.typography.titleMedium.copy(color = Color.Gray),
-                         modifier = Modifier
-                             .padding(vertical = 8.dp)
-                             .clickable { onValueChange(itemValue) }
-                     )
-                 }
-             }
-             
-             // Overlay Lines
-             androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-                 val strokeWidth = 2.dp.toPx()
-                 val yCenter = size.height / 2
-                 val offset = 25.dp.toPx()
-                 
-                 drawLine(
-                     color = androidx.compose.ui.graphics.Color.Gray.copy(alpha=0.3f),
-                     start = androidx.compose.ui.geometry.Offset(0f, yCenter - offset),
-                     end = androidx.compose.ui.geometry.Offset(size.width, yCenter - offset),
-                     strokeWidth = strokeWidth
-                 )
-                 drawLine(
-                     color = androidx.compose.ui.graphics.Color.Gray.copy(alpha=0.3f),
-                     start = androidx.compose.ui.geometry.Offset(0f, yCenter + offset),
-                     end = androidx.compose.ui.geometry.Offset(size.width, yCenter + offset),
-                     strokeWidth = strokeWidth
-                 )
-             }
-        }
-    }
-}
 
-@Composable
-fun SettingsClickableItem(
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    icon: ImageVector? = null
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 16.dp)
-            )
-        }
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
+

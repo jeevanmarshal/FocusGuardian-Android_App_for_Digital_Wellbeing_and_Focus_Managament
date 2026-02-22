@@ -5,83 +5,51 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.focusguardian.util.FocusScoreUtil
-import com.focusguardian.util.UserPrefs
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.focusguardian.ui.dashboard.DashboardViewModel
+import com.focusguardian.ui.dashboard.FocusState
+import com.focusguardian.ui.theme.*
+import kotlinx.coroutines.launch
 
 class DashboardScreen : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val themeMode = UserPrefs.getThemeMode(this)
-            val isDark = when (themeMode) {
-                1 -> false
-                2 -> true
-                else -> androidx.compose.foundation.isSystemInDarkTheme()
-            }
-
-            MaterialTheme(
-                colorScheme = if (isDark) darkColorScheme(
-                    primary = Color(0xFF6C63FF),
-                    secondary = Color(0xFF03DAC5),
-                    background = Color(0xFF121212),
-                    surface = Color(0xFF1E1E1E),
-                    onPrimary = Color.White,
-                    onSurface = Color.White
-                ) else lightColorScheme(
-                    primary = Color(0xFF6200EE),
-                    secondary = Color(0xFF03DAC5),
-                    background = Color(0xFFFFFFFF),
-                    surface = Color(0xFFF5F5F5),
-                    onPrimary = Color.White,
-                    onSurface = Color.Black
-                )
-            ) {
+            FocusGuardianTheme {
                 DashboardContent(
-                    onNavigateSettings = {
-                        startActivity(Intent(this, SettingsScreen::class.java))
+                    onNavigateSettings = { startActivity(Intent(this, SettingsScreen::class.java)) },
+                    onNavigateApps = { tabIndex -> 
+                        val intent = Intent(this, com.focusguardian.ui.monitoring.MonitoringScreen::class.java).apply {
+                            putExtra("start_tab", tabIndex)
+                        }
+                        startActivity(intent)
                     },
-                    onNavigateApps = {
-                        startActivity(Intent(this, AppSelectionScreen::class.java))
-                    },
-                    onNavigateSummary = {
-                        startActivity(Intent(this, WeeklySummaryScreen::class.java))
-                    }
+                    onNavigateSummary = { startActivity(Intent(this, com.focusguardian.ui.analytics.AnalyticsScreen::class.java)) },
+                    onNavigateSchedules = { /* Pending */ },
+                    viewModel = viewModel()
                 )
             }
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // Re-trigger recomposition by recreating activity for fresh data
-        // In a real app, use a ViewModel/Flow to observe data changes.
-        // This is a temporary simple refresh mechanism.
     }
 }
 
@@ -89,371 +57,305 @@ class DashboardScreen : ComponentActivity() {
 @Composable
 fun DashboardContent(
     onNavigateSettings: () -> Unit,
-    onNavigateApps: () -> Unit,
-    onNavigateSummary: () -> Unit
+    onNavigateApps: (Int) -> Unit,
+    onNavigateSummary: () -> Unit,
+    onNavigateSchedules: () -> Unit,
+    viewModel: DashboardViewModel
 ) {
-    val context = LocalContext.current
-    var score by remember { mutableStateOf(0) }
-    var focusedMinutes by remember { mutableStateOf(0) }
-    var distractedMinutes by remember { mutableStateOf(0) }
-    var cognitiveState by remember { mutableStateOf(com.focusguardian.logic.CognitiveState.CALM) }
-    var aiInsight by remember { mutableStateOf("") }
-    
-    // Focus Mode State
-    var isFocusMode by remember { mutableStateOf(UserPrefs.isFocusModeActive(context)) }
+    val state by viewModel.uiState.collectAsState()
+    val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
-    // Fetch data when Composable enters composition and poll every 30s
-    LaunchedEffect(Unit) {
-        while (true) {
-            score = com.focusguardian.util.FocusScoreUtil.getTodayScore(context)
-            focusedMinutes = com.focusguardian.util.FocusScoreUtil.getFocusedTime(context)
-            distractedMinutes = com.focusguardian.util.FocusScoreUtil.getDistractedTime(context)
-            cognitiveState = com.focusguardian.logic.CognitiveAnalyzer.getCognitiveLoad(context)
-            aiInsight = com.focusguardian.logic.CognitiveAnalyzer.getAIInsight(context)
-            kotlinx.coroutines.delay(30000) // Refresh every 30 seconds
-        }
+    val modeColor = try {
+        Color(android.graphics.Color.parseColor(state.activeModeColor))
+    } catch (e: Exception) {
+        DeepBlue
     }
+    
+    val gradientColors = listOf(modeColor, DeepBlue)
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "Focus Guardian",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-                    )
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.primary
-                ),
-                actions = {
-                    IconButton(onClick = onNavigateSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 8.dp), // Minimal vertical padding
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween // Distribute space evenly
-        ) {
-            
-
-
-            // Mode Selection Button (Replaces Intent Selector)
-            var currentGlobalIntent by remember { mutableStateOf(UserPrefs.getGlobalIntent(context)) }
-            val isBedtime = UserPrefs.isBedtimeEnabled(context)
-            val modeDisplay = if (isBedtime) "Bedtime" else currentGlobalIntent
-
-            OutlinedButton(
-                onClick = {
-                    context.startActivity(Intent(context, ModeSelectionScreen::class.java))
-                },
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().height(48.dp)
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = DeepBlue,
+                drawerContentColor = Color.White
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Current Mode", color = MaterialTheme.colorScheme.onSurface)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = modeDisplay,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(Icons.Default.List, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
+                Spacer(Modifier.height(24.dp))
+                Text("Focus Guardian", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.headlineMedium)
+                Divider(color = Color.White.copy(alpha = 0.1f))
+                NavigationDrawerItem(
+                    label = { Text("Dashboard") },
+                    selected = true,
+                    onClick = { scope.launch { drawerState.close() } },
+                    icon = { Icon(Icons.Default.Dashboard, "Dashboard") }
+                )
+                NavigationDrawerItem(
+                    label = { Text("Monitoring") },
+                    selected = false,
+                    onClick = { 
+                        scope.launch { drawerState.close() }
+                        onNavigateApps(0) 
+                    },
+                    icon = { Icon(Icons.Default.Visibility, "Monitoring") }
+                )
+                NavigationDrawerItem(
+                    label = { Text("Analytics") },
+                    selected = false,
+                    onClick = { 
+                        scope.launch { drawerState.close() }
+                        onNavigateSummary() 
+                    },
+                    icon = { Icon(Icons.Default.Analytics, "Analytics") }
+                )
+                 NavigationDrawerItem(
+                    label = { Text("Modes") },
+                    selected = false,
+                    onClick = { 
+                        scope.launch { drawerState.close() }
+                        onNavigateSchedules() 
+                    },
+                    icon = { Icon(Icons.Default.Tune, "Modes") }
+                )
+                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
+                NavigationDrawerItem(
+                    label = { Text("Settings") },
+                    selected = false,
+                    onClick = { 
+                        scope.launch { drawerState.close() }
+                        onNavigateSettings()
+                    },
+                    icon = { Icon(Icons.Default.Settings, "Settings") }
+                )
+                NavigationDrawerItem(
+                    label = { Text("About") },
+                    selected = false,
+                    onClick = { 
+                         // About Action or Dialog
+                        scope.launch { drawerState.close() }
+                    },
+                    icon = { Icon(Icons.Default.Info, "About") }
+                )
+                 NavigationDrawerItem(
+                    label = { Text("Send Feedback") },
+                    selected = false,
+                    onClick = { 
+                        // Feedback Intent
+                        scope.launch { drawerState.close() }
+                    },
+                    icon = { Icon(Icons.Default.Feedback, "Feedback") }
+                )
             }
-
-            // Circular Score & Cognitive Load (Flexible Size)
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.weight(1f).fillMaxWidth() // Let it take available space
+        }
+    ) {
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(gradientColors))) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
             ) {
-                // Background Glow
-                Box(
-                    modifier = Modifier
-                        .size(180.dp) // Reduced initial size
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
+                // Header
+                NewDashboardHeader(
+                    modeName = state.activeModeName,
+                    onMenuClick = { scope.launch { drawerState.open() } }
                 )
 
-                CircularProgressIndicator(
-                    progress = { 1f },
-                    modifier = Modifier.size(160.dp), // Reduced from 200
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeWidth = 10.dp,
-                    strokeCap = StrokeCap.Round
+                // Score Section
+                NewStatusSection(
+                    score = state.score,
+                    modeName = state.activeModeName
                 )
-                CircularProgressIndicator(
-                    progress = { score / 100f },
-                    modifier = Modifier.size(160.dp), // Reduced from 200
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 10.dp,
-                    strokeCap = StrokeCap.Round
+
+                // AI Insight Section (Below Focus Score per 3)
+                AiInsightCard(
+                    insight = state.customAiInsight ?: state.insightMessage,
+                    isLoading = state.isAiLoading
                 )
                 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "$score",
-                        style = MaterialTheme.typography.displayMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    )
-                    Text(
-                        text = "FOCUS SCORE",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                    )
-                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Monitoring Toggles
+                MonitoringCard(
+                    isAppEnabled = state.isAppMonitoringEnabled,
+                    isWebEnabled = state.isWebsiteMonitoringEnabled,
+                    isShortsEnabled = state.isShortsMonitoringEnabled,
+                    onToggleApp = { viewModel.toggleAppMonitoring(it) },
+                    onToggleWeb = { viewModel.toggleWebMonitoring(it) },
+                    onToggleShorts = { viewModel.toggleShortsMonitoring(it) },
+                    onNavigate = onNavigateApps
+                )
+                
+                Spacer(modifier = Modifier.height(100.dp))
             }
-
-            // AI Insight Card (Samsung Style) - Compact
-            Card(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 140.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.History,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Insight",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        
-                        // Cognitive State Tag
-                        Surface(
-                            color = when(cognitiveState) {
-                                com.focusguardian.logic.CognitiveState.CALM -> Color(0xFF4CAF50).copy(alpha = 0.1f)
-                                com.focusguardian.logic.CognitiveState.DISTRACTED -> Color(0xFFFFC107).copy(alpha = 0.1f)
-                                com.focusguardian.logic.CognitiveState.OVERLOADED -> Color(0xFFFF9800).copy(alpha = 0.1f)
-                                com.focusguardian.logic.CognitiveState.STRESSED -> Color(0xFFF44336).copy(alpha = 0.1f)
-                            },
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = cognitiveState.name,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = when(cognitiveState) {
-                                    com.focusguardian.logic.CognitiveState.CALM -> Color(0xFF4CAF50)
-                                    com.focusguardian.logic.CognitiveState.DISTRACTED -> Color(0xFFFFC107)
-                                    com.focusguardian.logic.CognitiveState.OVERLOADED -> Color(0xFFFF9800)
-                                    com.focusguardian.logic.CognitiveState.STRESSED -> Color(0xFFF44336)
-                                }
-                            )
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Text(
-                        text = aiInsight,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 3,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Usage Stats Cards
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Focused",
-                    value = "${focusedMinutes}m",
-                    color = MaterialTheme.colorScheme.primary
-                )
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Distracted",
-                    value = "${distractedMinutes}m",
-                    color = Color(0xFFF44336)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Navigation Grid
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                CompactMenuButton(
-                    modifier = Modifier.weight(1f),
-                    text = "Apps",
-                    icon = Icons.Default.List,
-                    onClick = onNavigateApps
-                )
-                CompactMenuButton(
-                    modifier = Modifier.weight(1f),
-                    text = "History",
-                    icon = Icons.Default.History,
-                    onClick = onNavigateSummary
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
-fun CompactMenuButton(
-    modifier: Modifier = Modifier,
-    text: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
+fun NewDashboardHeader(
+    modeName: String,
+    onMenuClick: () -> Unit
 ) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.height(80.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-            )
-        }
-    }
-}
-
-@Composable
-fun StatCard(
-    modifier: Modifier = Modifier,
-    title: String,
-    value: String,
-    color: Color
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-            )
-        }
-    }
-}
-
-@Composable
-fun MenuButton(
-    text: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick = onClick,
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary
-        ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+            .padding(24.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold
-                )
-            )
+        IconButton(onClick = onMenuClick) {
+            Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+        }
+        Spacer(Modifier.width(16.dp))
+        Column {
+            Text("FOCUS GUARDIAN", style = MaterialTheme.typography.labelSmall, color = TextSecondaryDark, letterSpacing = 2.sp)
         }
     }
 }
-      
+
+@Composable
+fun NewStatusSection(score: Int, modeName: String) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+             // Glow
+            Box(modifier = Modifier.size(180.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.05f)))
+            
+            Text(
+                "$score",
+                style = MaterialTheme.typography.displayLarge.copy(fontSize = 80.sp),
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Text(
+            "FOCUS SCORE",
+            style = MaterialTheme.typography.labelSmall,
+            color = TextSecondaryDark,
+            letterSpacing = 1.sp
+        )
+        Spacer(Modifier.height(16.dp))
+        Surface(
+            color = Color.White.copy(alpha = 0.1f),
+            shape = RoundedCornerShape(50),
+            modifier = Modifier.wrapContentSize()
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(SuccessGreen))
+                Spacer(Modifier.width(8.dp))
+                // Matches Core 2: "Current Mode: (it was setted inside the mode menu...)"
+                Text("Current Mode: $modeName", style = MaterialTheme.typography.bodyMedium, color = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+fun MonitoringCard(
+    isAppEnabled: Boolean,
+    isWebEnabled: Boolean,
+    isShortsEnabled: Boolean,
+    onToggleApp: (Boolean) -> Unit,
+    onToggleWeb: (Boolean) -> Unit,
+    onToggleShorts: (Boolean) -> Unit,
+    onNavigate: (Int) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("ACTIVE MONITORING", style = MaterialTheme.typography.labelSmall, color = TextSecondaryDark)
+            Spacer(Modifier.height(12.dp))
+            MonitoringToggleRow("App Blocking", isAppEnabled, onToggleApp, onClick = { onNavigate(0) })
+            MonitoringToggleRow("Website Blocking", isWebEnabled, onToggleWeb, onClick = { onNavigate(1) })
+            MonitoringToggleRow("Shorts/Reels Filter", isShortsEnabled, onToggleShorts, onClick = { onNavigate(2) })
+        }
+    }
+}
+
+@Composable
+fun MonitoringToggleRow(
+    label: String, 
+    isEnabled: Boolean, 
+    onToggle: (Boolean) -> Unit,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = Color.White)
+        Switch(
+            checked = isEnabled,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = SeedPurple,
+                uncheckedThumbColor = TextSecondaryDark,
+                uncheckedTrackColor = Color.Transparent
+            )
+        )
+    }
+}
+
+// Re-using existing components for consistency
+@Composable
+fun AiInsightCard(
+    insight: String,
+    isLoading: Boolean
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = "AI",
+                    tint = Color(0xFF6366F1),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "FOCUS AI INSIGHT",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF6366F1),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            if (isLoading) {
+                Text(
+                    text = "Analyzing your daily patterns...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            } else {
+                Text(
+                    text = insight,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                    lineHeight = 22.sp
+                )
+            }
+        }
+    }
+}
+

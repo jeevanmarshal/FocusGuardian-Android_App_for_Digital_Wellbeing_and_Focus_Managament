@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Focus Guardian</string>
+    <string name="accessibility_service_description">Accessibility service is used to detect app usage and enforce focus restrictions. It does not read personal content, collect keystrokes, or transmit data externally.</string>
 </resources>
