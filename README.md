@@ -1,89 +1,44 @@
-# Focus Guardian Backend
+# FocusGuardian - AI Engine & Backend Service
 
-A production-ready Node.js/Express backend for the Focus Guardian Android App, powered by Google Gemini AI.
+Welcome to the server-side architecture of the FocusGuardian application! 
 
-## 🚀 Features
+## Overview
+This **Focus Guardian AI Backend** is the core cloud element ensuring full integration with our LLM intelligence layer, designed purposefully to generate comprehensive behavioral analysis metrics from user-supplied tracking analytics. The server provides a fast, resilient API architecture for processing detailed smartphone usage insights and outputting synthesized, human-readable qualitative data using the powerful Gemini API model schema. 
 
-- **Usage Analysis Engine**: Analyzes behavioral patterns and focus scores.
-- **AI Insight Generator**: Generates concise, context-aware insights using Gemini Pro.
-- **Alert Orchestration**: Hybrid rule-based + AI logic for personalized alerts.
-- **Production Ready**: Configured for Render Free Tier deployment.
+## Key Architecture Breakdown
+1. **Gemini API Integration Layer:** Employs precise, multi-turn system prompt curation methodologies that contextually comprehend the metrics sent by the Android application module (such as raw screen times, application transitions, and user thresholds).
+2. **RESTful Architecture:** Built natively on Node.js/Express, ensuring lightweight but powerful endpoint scaling capabilities. Designed cleanly using middleware error handling, modular routing patterns, and proper decoupled controller patterns.
+3. **Environment Isolation Strategies:** Uses structured `.env` strategies securely to parse necessary API keys away from public repository viewing.
+4. **Behavioral Insight Engine:** The controller receives unformatted `JSON` data blocks documenting long-session user interaction behaviors, securely formats and parses this data up to the AI pipeline, and processes the output into immediate real-time dashboard updates rendered back natively on the user's Android client app overlay dashboard.
+5. **Robust Mock Services:** Complete mocking environment configured internally to mock complex analytical responses in case of rate-limiting or non-ideal downstream dependencies, enabling seamless development iterations. 
 
-## 🛠 Tech Stack
+## Technical Details
 
-- **Runtime**: Node.js 18+
-- **Framework**: Express.js
-- **AI**: Google Gemini API (`@google/generative-ai`)
-- **Validation**: Joi
-- **Security**: Helmet, CORS, Dotenv
+- **Runtime:** Node.js v18+
+- **Primary Modules:** `express`, `@google/generative-ai`, `dotenv`, `cors`, etc.
+- **Port Assignment:** Default 3000
 
-## 📂 Project Structure
+## Quickstart
 
+If deploying this backend locally for the Android app architecture implementation, run these commands globally:
+
+```bash
+# Clone the complete project environment
+git clone <repository_url>
+cd FocusGuardian_Final
+git checkout ai-backend
+
+# Install root dependencies
+npm install
+
+# Build environment file
+cp .env.example .env
+
+# Run server on localhost 
+npm run dev 
+# The application should now start accepting data inputs from the Kotlin Android system natively on your LAN. 
 ```
-/src
- ├── index.js                  # App Entry Point
- ├── config/env.js             # Environment Config
- ├── controllers/              # Request Handlers
- ├── routes/                   # API Routes
- ├── services/                 # Business Logic (AI, Analysis)
- └── utils/                    # Prompts & Validators
-```
 
-## ⚡ Local Setup
+## For Recruiters 
 
-1.  **Clone & Install**
-    ```bash
-    npm install
-    # Note: If nodemon is not installed globally, run: npm install -D nodemon
-    ```
-
-2.  **Environment Configuration**
-    - Create a `.env` file in the root directory.
-    - Copy contents from `.env.example`.
-    - Add your Gemini API Key.
-
-    ```bash
-    cp .env.example .env
-    ```
-
-3.  **Run Locally**
-    ```bash
-    npm run dev   # Development mode with auto-restart
-    # OR
-    npm start     # Production mode
-    ```
-
-4.  **Testing via Postman**
-    - **URL**: `http://localhost:3000`
-    - Use the mock payloads in the `/mocks` directory.
-
-## 📡 API Endpoints
-
-### 1. Dashboard Insight
-- **POST** `/ai/dashboard-insight`
-- **Body**: See `mocks/dashboard_high_distraction.json`
-
-### 2. Alert Generation
-- **POST** `/ai/alert-message`
-- **Body**: See `mocks/alert_strict_violation.json`
-
-### 3. Weekly Review
-- **POST** `/ai/weekly-review`
-- **Body**: See `mocks/weekly_review.json`
-
-## 🌍 Deployment (Render)
-
-This project is pre-configured for **Render Web Service (Free Tier)**.
-
-1.  Push code to GitHub/GitLab.
-2.  Create a new **Web Service** on Render.
-3.  Connect the repository.
-4.  **Settings**:
-    - **Runtime**: Node
-    - **Build Command**: `npm install`
-    - **Start Command**: `npm start`
-5.  **Environment Variables** (Add these in Render Dashboard):
-    - `GEMINI_API_KEY`: [Your Key]
-    - `NODE_ENV`: `production`
-
-No code changes are required for deployment.
+This backend was built strictly by Jeevan Marshal. It demonstrates an advanced understanding of LLM interfacing capabilities, real-time JSON parsing mechanics over standard REST protocols, scalable microservices architectures, Node.js development standards, and modular implementation methodologies for highly functional frontend ecosystems.
