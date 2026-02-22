@@ -12,10 +12,18 @@ This **Focus Guardian AI Backend** is the core cloud element ensuring full integ
 4. **Behavioral Insight Engine:** The controller receives unformatted `JSON` data blocks documenting long-session user interaction behaviors, securely formats and parses this data up to the AI pipeline, and processes the output into immediate real-time dashboard updates rendered back natively on the user's Android client app overlay dashboard.
 5. **Robust Mock Services:** Complete mocking environment configured internally to mock complex analytical responses in case of rate-limiting or non-ideal downstream dependencies, enabling seamless development iterations. 
 
-## Technical Details
+## Tech Stack & Packages Used
+This backend serves as a scalable API microservice leveraging the following libraries and cloud tools:
 
-- **Runtime:** Node.js v18+
-- **Primary Modules:** `express`, `@google/generative-ai`, `dotenv`, `cors`, etc.
+- **Core Runtime**: `Node.js` v18+
+- **Framework**: `Express.js` (`^5.2.1`) for robust REST API routing.
+- **AI Integration**: `@google/generative-ai` (`^0.24.1`) - Google's official Gemini AI SDK.
+- **Security & Validation**: 
+  - `helmet` (`^8.1.0`) for securing HTTP headers.
+  - `joi` (`^18.0.2`) for payload data validation.
+  - `cors` (`^2.8.5`) for Cross-Origin Resource Sharing.
+- **Environment & Logging**: `dotenv` (`^17.2.3`) for secret management and `morgan` (`^1.10.1`) for HTTP request logging.
+- **Development Tools**: `nodemon` (`^3.1.11`) for hot-reloading.
 - **Port Assignment:** Default 3000
 
 ## Quickstart
