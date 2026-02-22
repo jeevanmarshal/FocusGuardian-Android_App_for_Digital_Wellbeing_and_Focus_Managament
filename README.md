@@ -15,6 +15,7 @@ This **Focus Guardian AI Backend** is the core cloud element ensuring full integ
 ## Tech Stack & Packages Used
 This backend serves as a scalable API microservice leveraging the following libraries and cloud tools:
 
+- **Language**: `JavaScript`
 - **Core Runtime**: `Node.js` v18+
 - **Framework**: `Express.js` (`^5.2.1`) for robust REST API routing.
 - **AI Integration**: `@google/generative-ai` (`^0.24.1`) - Google's official Gemini AI SDK.
