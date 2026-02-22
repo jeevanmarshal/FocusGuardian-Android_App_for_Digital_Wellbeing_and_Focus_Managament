@@ -39,6 +39,13 @@ A scalable microservice architecture leveraging standard REST protocol patterns:
 - **Security & Utilities:** `helmet` (HTTP securing), `joi` (validation), `cors`
 - **Environment Management:** `dotenv`
 
+## Project Language Breakdown
+The approximate language composition across the entire FocusGuardian Monorepo ecosystem:
+- 🟣 **Kotlin:** `78.5%` (Android UI, business logic, asynchronous data binding)
+- 🟡 **JavaScript:** `12.0%` (Node.js AI Backend Controller and endpoint routing)
+- 🟠 **XML:** `8.5%` (Android layouts, styling resources & configurations)
+- ⚪ **Other:** `1.0%` (JSON schemas, Gradle scripts, configuration files)
+
 ## How to Navigate This Repository
 
 To explore the respective parts of the project, please switch to the relevant branch:
