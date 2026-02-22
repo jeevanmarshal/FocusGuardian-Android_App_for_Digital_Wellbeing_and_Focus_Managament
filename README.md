@@ -18,6 +18,25 @@ FocusGuardian was developed to demonstrate comprehensive full-stack and mobile d
 - **AI Integration:** Implements the Gemini API to autonomously generate intelligent, actionable user feedback directly from usage metrics.
 - **Clean Architecture:** The project emphasizes maintainability, scalable API connections, and neat, presentable code structure suitable for enterprise-level applications.
 
+## Comprehensive Tech Stack & Packages
+
+### 📱 Android Application (`android-app`)
+Built with modern standardizations of Android development leveraging the following libraries:
+- **Core UI & Logic:** `Kotlin`, `Jetpack Compose` (Material 3)
+- **Asynchrony:** `Kotlin Coroutines` & `Flows`
+- **Networking:** `Retrofit2`, `Gson`
+- **Data Persistence:** `Room Database` (SQLite), `DataStore`
+- **Background Tasks:** `WorkManager`
+- **Image Handling:** `Coil`
+- **System APIs:** `UsageStatsManager`, `AccessibilityService`
+
+### ☁️ AI Backend Server (`ai-backend`)
+A scalable microservice architecture leveraging standard REST protocol patterns:
+- **Runtime & Gateway:** `Node.js`, `Express.js`
+- **AI Processing:** Google `@google/generative-ai` (Gemini API)
+- **Security & Utilities:** `helmet` (HTTP securing), `joi` (validation), `cors`
+- **Environment Management:** `dotenv`
+
 ## How to Navigate This Repository
 
 To explore the respective parts of the project, please switch to the relevant branch:
