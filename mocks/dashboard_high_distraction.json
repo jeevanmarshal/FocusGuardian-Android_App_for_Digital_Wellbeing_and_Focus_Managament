@@ -1,0 +1,14 @@
+{
+  "dailyUsageOfApp": {
+    "com.instagram.android": 120,
+    "com.tiktok.android": 90,
+    "com.whatsapp": 45
+  },
+  "totalScreenTime": 350,
+  "focusScoreTrend": "declining",
+  "blockCount": 12,
+  "userPreferences": {
+    "focusGoalMin": 120,
+    "tone": "strict"
+  }
+}

@@ -1,0 +1,10 @@
+{
+    "alertType": "strict",
+    "triggerReason": "Repeated Block Override Attempts",
+    "recentBehavior": {
+        "appPackage": "com.instagram.android",
+        "usageDuringSession": 45,
+        "attemptedUnlocks": 5
+    },
+    "userTonePreference": "strict"
+}

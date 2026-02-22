@@ -1,0 +1,13 @@
+{
+    "dailyUsageOfApp": {
+        "com.google.android.apps.docs": 40,
+        "com.slack": 20
+    },
+    "totalScreenTime": 90,
+    "focusScoreTrend": "improving",
+    "blockCount": 1,
+    "userPreferences": {
+        "focusGoalMin": 120,
+        "tone": "gentle"
+    }
+}

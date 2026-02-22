@@ -1,0 +1,13 @@
+{
+    "weeklyStats": {
+        "totalScreenTime": 2400,
+        "mostUsedApp": "com.tiktok.android",
+        "focusScoreAverage": 65
+    },
+    "improvementDelta": -5,
+    "topDistractions": [
+        "com.tiktok.android",
+        "com.instagram.android",
+        "com.whatsapp"
+    ]
+}

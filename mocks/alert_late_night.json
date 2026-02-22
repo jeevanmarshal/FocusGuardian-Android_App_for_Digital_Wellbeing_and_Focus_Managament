@@ -1,0 +1,10 @@
+{
+    "alertType": "reminder",
+    "triggerReason": "Late Night Usage",
+    "recentBehavior": {
+        "appPackage": "com.netflix.mediaclient",
+        "usageDuringSession": 120,
+        "attemptedUnlocks": 0
+    },
+    "userTonePreference": "gentle"
+}
