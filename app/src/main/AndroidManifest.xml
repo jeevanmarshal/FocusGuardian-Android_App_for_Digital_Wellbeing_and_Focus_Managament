@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    >
+
+    <!-- ================= REQUIRED PERMISSIONS ================= -->
+
+    <!-- Internet access for AI backend -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+    <!-- Usage monitoring -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- Notifications (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Audio for voice alerts -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Battery optimization awareness -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    
+    <!-- Display over other apps -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Call monitoring -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <!-- List all apps -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" 
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <!-- ========================================================== -->
+
+    <application
+        android:name=".FocusGuardianApp"
+        android:allowBackup="true"
+        android:label="Focus Guardian"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.FocusGuardian">
+
+        <!-- ================= MAIN ENTRY ================= -->
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ================= UI SCREENS ================= -->
+
+        <activity android:name=".ui.DashboardScreen" />
+        <activity android:name=".ui.monitoring.MonitoringScreen" />
+        <activity android:name=".ui.SettingsScreen" />
+        <activity android:name=".ui.AppSelectionScreen" />
+        <activity android:name=".ui.AppConfigScreen" />
+        <activity android:name=".ui.WeeklySummaryScreen" />
+        <activity android:name=".ui.PermissionHealthScreen" />
+        <activity android:name=".ui.ModeSelectionScreen" />
+        <activity android:name=".ui.ScheduleListScreen" />
+        <activity android:name=".ui.AlertExplanationScreen" />
+        <activity android:name=".ui.PositiveFeedbackScreen" />
+        <activity 
+            android:name=".ui.FocusAlertActivity"
+            android:theme="@style/Theme.FocusGuardian.Translucent"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:exported="false" />
+
+        <!-- ================= SERVICES ================= -->
+
+        <service
+            android:name=".service.AppUsageService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+
+        <service
+            android:name=".service.CallMonitorService"
+            android:exported="false" />
+
+        <service
+            android:name=".service.FocusAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <receiver
+            android:name=".receiver.FocusDeviceAdminReceiver"
+            android:description="@string/app_name"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:exported="true">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin_policies" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>
